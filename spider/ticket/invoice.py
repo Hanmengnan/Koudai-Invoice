@@ -1,18 +1,17 @@
-from selenium import webdriver
-from urllib.request import urlretrieve
-import urllib
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+
 from API.data import Data
+
+
 class invoice:
     def __init__(self):
-        self.data_hold={}
+        self.data_hold = {}
+
     def new_browser(self):
         self.browser = webdriver.Chrome()
-        self.browser.set_window_size(1350,750),
+        self.browser.set_window_size(1350 , 750) ,
         website_link="https://inv-veri.chinatax.gov.cn/"
         self.browser.get(website_link)
         #js='window.open("https://inv-veri.chinatax.gov.cn/","","width=1350,height=750");'

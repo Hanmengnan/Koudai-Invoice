@@ -1,18 +1,18 @@
-import requests
+import datetime
 import json
-import base64
+import os
+
+import requests
 from bs4 import BeautifulSoup
-from selenium import webdriver
+
 from API.chinese import digital_to_chinese
 from API.compress import size
-import datetime
-import os
-from threading import Thread
+
 
 class Data():
     """快速查验"""
 
-    def __init__(self, invoice):
+    def __init__(self , invoice):
         """传入发票信息字典，初始化对象"""
         self.invoice = invoice
 
@@ -20,14 +20,17 @@ class Data():
         """通过API查询并返回发票信息，返回字典"""
         host = 'https://fapiao.market.alicloudapi.com/invoice/query'
         appcode = '6442e92f6d35403999670f63b04c8142'
-        querys = 'fpdm='+self.invoice['fp_dm']+'&fphm='+self.invoice['fp_hm']+'&kprq=' +self.invoice['kp_rq']+'&checkCode='+self.invoice['jy'][-6:] +'&noTaxAmount='+self.invoice['kp_je']
-        url = host+'?'+querys
+        querys = 'fpdm=' + self.invoice['fp_dm'] + '&fphm=' + self.invoice['fp_hm'] + '&kprq=' + \
+                 self.invoice['kp_rq'] + '&checkCode=' + self.invoice['jy'][-6:] + \
+                 '&noTaxAmount=' + self.invoice['kp_je']
+        url = host + '?' + querys
         headers = {
-            'Authorization': 'APPCODE '+appcode
+            'Authorization': 'APPCODE ' + appcode
         }
-        response = requests.get(url, headers=headers)
-        #生成日志
-        with open(r'C:\Users\Administrator\Desktop\invoice\API\logs'+'\\'+self.invoice['fp_hm']+'.txt','w') as f:
+        response = requests.get(url , headers=headers)
+        # 生成日志
+        with open(r'C:\Users\Administrator\Desktop\invoice\API\logs' + '\\' + self.invoice['fp_hm'] + '.txt' ,
+                  'w') as f:
             f.write(response.text)
         self.invoice = json.loads(response.text)
         return self.invoice
@@ -80,33 +83,35 @@ class Data():
     def writeinfo(self):
         """渲染出html"""
         # 打开模板文件
-        with open(r'C:\Users\Administrator\Desktop\invoice\API\Mould\Mould.html', encoding='utf-8') as f:
+        with open(r'C:\Users\Administrator\Desktop\invoice\API\Mould\Mould.html' , encoding='utf-8') as f:
             html = f.read()
-        self.soup = BeautifulSoup(html, 'lxml')
+        self.soup = BeautifulSoup(html , 'lxml')
         info = self.invoice
         # 构造查验时间
-        info['time'] = '查验时间：' + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
+        info['time'] = '查验时间：' + \
+                       datetime.datetime.strftime(
+                           datetime.datetime.now() , '%Y-%m-%d %H:%M:%S')
         # 构造发票头
-        info['fplx'] = info['sfMc']+info['fplxName']
+        info['fplx'] = info['sfMc'] + info['fplxName']
         # 构造大写价税合计
-        info['SUMAMOUNT'] = '⊗'+digital_to_chinese(info['sumamount'])
+        info['SUMAMOUNT'] = '⊗' + digital_to_chinese(info['sumamount'])
         # 弹出未使用的数据
-        useless = ['success', 'fplxName', 'sfMc', 'sfCode',
-                   'del', 'updateTime', 'quantityAmount']
+        useless = ['success' , 'fplxName' , 'sfMc' , 'sfCode' ,
+                   'del' , 'updateTime' , 'quantityAmount']
         for item in useless:
             info.pop(item)
         # 加人民币符号
-        info['goodsamount'] = '￥'+info['goodsamount']
-        info['sumamount'] = '￥'+info['sumamount']
-        info['taxamount'] = '￥'+info['taxamount']
-        #删除可能的错误
-        error=['isGoodsList','queryCount']
+        info['goodsamount'] = '￥' + info['goodsamount']
+        info['sumamount'] = '￥' + info['sumamount']
+        info['taxamount'] = '￥' + info['taxamount']
+        # 删除可能的错误
+        error = ['isGoodsList' , 'queryCount']
         for item in error:
             try:
                 info.pop(item)
             except:
                 pass
-        for k, i in info.items():
+        for k , i in info.items():
             if k == 'goodsData':
                 continue
             self.findnode(k).string = i
@@ -182,12 +187,17 @@ class Data():
 
     def getpic(self):
         """生成html文件并截图"""
-        with open(r'C:\Users\Administrator\Desktop\invoice\API\Mould'+'\\'+self.invoice['fphm']+'.html', 'w', encoding='utf-8') as f:
+        with open(r'C:\Users\Administrator\Desktop\invoice\API\Mould' + '\\' + self.invoice['fphm'] + '.html' , 'w' ,
+                  encoding='utf-8') as f:
             f.write(str(self.soup))
-        #启动渲染器渲染
-        os.system('wkhtmltoimage.exe '+r'C:\Users\Administrator\Desktop\invoice\API\Mould'+'\\'+self.invoice['fphm']+'.html'+' C:\\Users\\Administrator\\Desktop\\invoice\\spider\\images\\'+self.invoice['fpdm']+self.invoice['fphm']+'.png')
-        size('C:\\Users\\Administrator\\Desktop\\invoice\\spider\\images\\'+self.invoice['fpdm']+self.invoice['fphm']+'.png',1100)
-        os.remove(r'C:\Users\Administrator\Desktop\invoice\API\Mould'+'\\'+self.invoice['fphm']+'.html')
+        # 启动渲染器渲染
+        os.system('wkhtmltoimage.exe ' + r'C:\Users\Administrator\Desktop\invoice\API\Mould' + '\\' +
+                  self.invoice['fphm'] + '.html' + ' C:\\Users\\Administrator\\Desktop\\invoice\\spider\\images\\' +
+                  self.invoice['fpdm'] + self.invoice['fphm'] + '.png')
+        size('C:\\Users\\Administrator\\Desktop\\invoice\\spider\\images\\' +
+             self.invoice['fpdm'] + self.invoice['fphm'] + '.png' , 1100)
+        os.remove(r'C:\Users\Administrator\Desktop\invoice\API\Mould' +
+                  '\\' + self.invoice['fphm'] + '.html')
 
 
 def useAPI(invoice):
@@ -197,7 +207,7 @@ def useAPI(invoice):
     返回保准化全部信息
     """
     API = Data(invoice)
-    data=API.API()
+    data = API.API()
     API.writeinfo()
     API.getpic()
     return data
